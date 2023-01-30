@@ -1,6 +1,7 @@
 import abc
 import json
-from typing import Dict, List, Optional, Union
+from collections import defaultdict
+from typing import DefaultDict, Dict, List, Optional, Union
 
 import numpy as np
 
@@ -9,18 +10,6 @@ from sortviz import utils as m_utils
 
 class BaseSorter(abc.ABC):
     """An Abstract Base Class that all of the sorters will inherit from."""
-
-    @abc.abstractmethod
-    def sort(self, arr: np.ndarray) -> np.ndarray:
-        raise NotImplementedError("The 'sort()' method is not implemented.")
-
-    @abc.abstractmethod
-    def save_sort(self, filename: str) -> None:
-        raise NotImplementedError("The 'save_sort()' method is not implemented.")
-
-
-class BubbleSorter(BaseSorter):
-    """A class that will perform the Bubble Sort method."""
 
     def __init__(self):
         """Initializes the parameters that will contain the sorting information for the class."""
@@ -46,6 +35,18 @@ class BubbleSorter(BaseSorter):
             self.num_rows, self.num_cols = arr.shape
             self.is_row_completed = np.zeros(self.num_rows)
         self.passes = []
+
+    @abc.abstractmethod
+    def sort(self, arr: np.ndarray) -> np.ndarray:
+        raise NotImplementedError("The 'sort()' method is not implemented.")
+
+    @abc.abstractmethod
+    def save_sort(self, filename: str) -> None:
+        raise NotImplementedError("The 'save_sort()' method is not implemented.")
+
+
+class BubbleSorter(BaseSorter):
+    """A class that will perform the Bubble Sort method."""
 
     def sort(self, arr: np.ndarray) -> np.ndarray:
         """Performs the bubble sort algorithm on the provided `arr` array.
@@ -139,5 +140,142 @@ class BubbleSorter(BaseSorter):
         with open(filename, "w") as f:
             json.dump(
                 data.dict(),
+                f,
+            )
+
+
+class MergeSorter(BaseSorter):
+    def __init__(self):
+        super().__init__()
+
+    def _init_params(self, arr: Optional[np.ndarray]) -> None:
+        super()._init_params(arr)
+        self.passes: DefaultDict = defaultdict(list)
+
+    def sort(self, arr: np.ndarray) -> np.ndarray:
+        """_summary_
+
+        :param arr: _description_
+        :type arr: np.ndarray
+        :return: _description_
+        :rtype: np.ndarray
+        """
+
+        self._init_params(arr)
+        return self._mergesort(0, arr.copy(), 0, self.num_cols)
+
+    def _merge(self, left_arr: np.ndarray, right_arr: np.ndarray) -> np.ndarray:
+        """
+        Merges the two halves.
+        """
+        cols = left_arr.shape[1] + right_arr.shape[1]
+        rows = left_arr.shape[0]
+        tmp_arr = np.zeros((rows, cols))
+
+        # sort each row separately
+        for idx_row in range(rows):
+            idx_left = 0
+            idx_right = 0
+            idx_temp = 0
+            while idx_temp < cols:
+                left_value = left_arr[idx_row, idx_left] if idx_left < left_arr.shape[1] else None
+                right_value = (
+                    right_arr[idx_row, idx_right] if idx_right < right_arr.shape[1] else None
+                )
+
+                if left_value is None:
+                    tmp_arr[idx_row, idx_temp] = right_value
+                    idx_right += 1
+                elif right_value is None:
+                    tmp_arr[idx_row, idx_temp] = left_arr[idx_row, idx_left]
+                    idx_left += 1
+                elif left_arr[idx_row, idx_left] < right_arr[idx_row, idx_right]:
+                    tmp_arr[idx_row, idx_temp] = left_arr[idx_row, idx_left]
+                    idx_left += 1
+                else:
+                    tmp_arr[idx_row, idx_temp] = right_arr[idx_row, idx_right]
+                    idx_right += 1
+                idx_temp += 1
+        return tmp_arr
+
+    def _mergesort(
+        self,
+        num_divide: int,
+        arr: Optional[np.ndarray],
+        left_index: Optional[int],
+        right_index: Optional[int],
+    ) -> np.ndarray:
+        """Recursively divides the array until the size becomes one.
+
+        :param num_divide: The numbers of divisions made.
+        :type num_divide: int
+        :param arr: An array (or sub-division of the array) being sorted.
+        :type arr: Optional[np.ndarray]
+        :param left_index: The left index of the array to include in the Merge Sort.
+        :type left_index: Optional[int]
+        :param right_index: The right index of the array to include in the Merge Sort.
+        :type right_index: Optional[int]
+        :raises ValueError: Raised when `sort()` was not called beforehand.
+        :return: The sorted array.
+        :rtype: np.ndarray
+        """
+
+        if arr is None or left_index is None or right_index is None:
+            raise ValueError("A numpy array is not set, please call the `sort()` method.")
+
+        if arr.shape[1] <= 1:
+            self.passes[num_divide].append([arr, left_index, right_index])
+            return arr
+
+        mid = arr.shape[1] // 2
+        pointer = (left_index + right_index) // 2
+        left_arr = arr[:, :mid].copy()  # divide and conquer the left side of the array.
+        right_arr = arr[:, mid:].copy()  # divide and conquer the right side of the array.
+
+        left_arr = self._mergesort(num_divide + 1, left_arr, left_index, pointer)
+        right_arr = self._mergesort(num_divide + 1, right_arr, pointer, right_index)
+        sorted_arr = self._merge(left_arr, right_arr)
+        self.passes[num_divide].append([sorted_arr, left_index, right_index])
+        return sorted_arr
+
+    def save_sort(self, filename: str) -> None:
+        """Saves the sorted data into a .json file that makes it easy to plot using d3.
+
+        :param filename: The .json filename to save the data to.
+        :type filename: Raised when the data has not been sorted.
+        :raises ValueError: _description_
+        """
+
+        if self.arr is None:
+            raise ValueError("Unable to save sort, call the `sort()` before attempting to save.")
+
+        rows, cols = self.arr.shape
+        passes = [
+            [
+                {"row": row, "col": col, "value": self.arr.copy().tolist()[row][col]}
+                for row in range(rows)
+                for col in range(cols)
+            ]
+        ]
+
+        sorted_arr = self.arr.copy()
+        for idx_divide in sorted(self.passes.keys(), reverse=True):
+            for (data, left_index, right_index) in self.passes[idx_divide]:
+                sorted_arr[:, left_index:right_index] = data
+            current_pass = [
+                {"row": row, "col": col, "value": sorted_arr.copy().tolist()[row][col]}
+                for row in range(rows)
+                for col in range(cols)
+            ]
+            passes.append(current_pass)
+
+        with open(filename, "w") as f:
+            json.dump(
+                {
+                    "method": "Merge Sort (Recursive)",
+                    "passes": passes,
+                    "rows": rows,
+                    "cols": cols,
+                },
                 f,
             )
