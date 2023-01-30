@@ -20,7 +20,10 @@ class BaseSorter(abc.ABC):
 
 
 class BubbleSorter(BaseSorter):
+    """A class that will perform the Bubble Sort method."""
+
     def __init__(self):
+        """Initializes the parameters that will contain the sorting information for the class."""
         self.arr: Optional[np.ndarray] = None
         self.num_rows: Optional[int] = None
         self.num_cols: Optional[int] = None
@@ -84,7 +87,8 @@ class BubbleSorter(BaseSorter):
         :param arr: The array to sort every row.
         :type arr: np.ndarray
         :raises ValueError: raised when this method was not called through `self.sort()`.
-        :return: _description_
+        :return: A sorted pass through the `arr` array. Note: this output will not be fully sorted
+            until the final pass has been run.
         :rtype: np.ndarray
         """
 
@@ -108,13 +112,11 @@ class BubbleSorter(BaseSorter):
         return arr
 
     def save_sort(self, filename: str) -> None:
-        """
-        Saves the sorted data into a .json file that makes it easy to plot using d3.
+        """Saves the sorted data into a .json file that makes it easy to plot using d3.
 
-        Parameters
-        ----------
-        filename : str
-            The .json filename to save the data to.
+        :param filename: The .json filename to save the data to.
+        :type filename: str
+        :raises ValueError: raised when `sort()` has not been called yet!
         """
 
         if self.arr is None:
