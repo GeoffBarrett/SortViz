@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+.vscode/
+.pytest_cache/
+.pytype/
+
+sortviz/notebooks/*.json
