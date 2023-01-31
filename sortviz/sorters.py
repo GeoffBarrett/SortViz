@@ -147,17 +147,18 @@ class BubbleSorter(BaseSorter):
 class MergeSorter(BaseSorter):
     def __init__(self):
         super().__init__()
+        self.passes: DefaultDict = defaultdict(list)
 
     def _init_params(self, arr: Optional[np.ndarray]) -> None:
         super()._init_params(arr)
         self.passes: DefaultDict = defaultdict(list)
 
     def sort(self, arr: np.ndarray) -> np.ndarray:
-        """_summary_
+        """Sorts the provided `arr` using Merge Sort.
 
-        :param arr: _description_
+        :param arr: The array to sort.
         :type arr: np.ndarray
-        :return: _description_
+        :return: The sorted array.
         :rtype: np.ndarray
         """
 
@@ -165,15 +166,21 @@ class MergeSorter(BaseSorter):
         return self._mergesort(0, arr.copy(), 0, self.num_cols)
 
     def _merge(self, left_arr: np.ndarray, right_arr: np.ndarray) -> np.ndarray:
-        """
-        Merges the two halves.
+        """Merges the two halves (`left_arr` and `right_arr`) in a sorted manner.
+
+        :param left_arr: The left array to merge.
+        :type left_arr: np.ndarray
+        :param right_arr: The right array to merge.
+        :type right_arr: np.ndarray
+        :return: The merged (and sorted) array.
+        :rtype: np.ndarray
         """
         cols = left_arr.shape[1] + right_arr.shape[1]
         rows = left_arr.shape[0]
         tmp_arr = np.zeros((rows, cols))
 
         # sort each row separately
-        for idx_row in range(rows):
+        for idx_row in np.arange(rows):
             idx_left = 0
             idx_right = 0
             idx_temp = 0
@@ -242,40 +249,42 @@ class MergeSorter(BaseSorter):
         """Saves the sorted data into a .json file that makes it easy to plot using d3.
 
         :param filename: The .json filename to save the data to.
-        :type filename: Raised when the data has not been sorted.
-        :raises ValueError: _description_
+        :type filename: str
+        :raises ValueError: Raised when the data has not been sorted.
         """
 
         if self.arr is None:
             raise ValueError("Unable to save sort, call the `sort()` before attempting to save.")
 
         rows, cols = self.arr.shape
+
+        # initialize with the starting array as num_pass = 0
         passes = [
             [
-                {"row": row, "col": col, "value": self.arr.copy().tolist()[row][col]}
+                m_utils.PassDataModel(num_pass=0, row=row, col=col, value=int(self.arr[row][col]))
                 for row in range(rows)
                 for col in range(cols)
             ]
         ]
-
         sorted_arr = self.arr.copy()
-        for idx_divide in sorted(self.passes.keys(), reverse=True):
+
+        for idx_divide in self.passes:
+            num_pass = len(self.passes) - idx_divide  # lower num pass equates to early in the sort
             for (data, left_index, right_index) in self.passes[idx_divide]:
                 sorted_arr[:, left_index:right_index] = data
             current_pass = [
-                {"row": row, "col": col, "value": sorted_arr.copy().tolist()[row][col]}
+                m_utils.PassDataModel(
+                    num_pass=num_pass, row=row, col=col, value=int(sorted_arr[row][col])
+                )
                 for row in range(rows)
                 for col in range(cols)
             ]
             passes.append(current_pass)
 
+        data = m_utils.SortDataModel(method="Merge Sort", rows=rows, cols=cols, passes=passes)
+
         with open(filename, "w") as f:
             json.dump(
-                {
-                    "method": "Merge Sort (Recursive)",
-                    "passes": passes,
-                    "rows": rows,
-                    "cols": cols,
-                },
+                data.dict(),
                 f,
             )
