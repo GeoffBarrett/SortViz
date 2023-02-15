@@ -48,17 +48,17 @@ def plot_sort(filename: str) -> None:
 
     :param filename: The name of the .json file that contains the sort data.
     :type filename: str
-    :raises ValueError: raised when the filename does not exist.
+    :raises FileNotFoundError: raised when the filename does not exist.
     """
 
     if not os.path.exists(filename):
-        raise ValueError(f"Unable to plot the data, file does not exist: {filename}")
+        raise FileNotFoundError(f"Unable to plot the data, file does not exist: {filename}")
 
     sort_data = SortDataModel.parse_file(filename)
     rows = sort_data.rows
     cols = sort_data.cols
     passes = sort_data.passes
-    plot_data = np.zeros((len(passes), rows, cols))
+    plot_data = np.zeros((len(passes), rows, cols), dtype=int)
     for sort_pass in passes:
         for data in sort_pass:
             plot_data[data.num_pass, data.row, data.col] = data.value
