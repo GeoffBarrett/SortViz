@@ -8,7 +8,8 @@
 		"ms-python.python",
 		"ms-python.vscode-pylance",
 		"ms-python.black-formatter",
-		"njpwerner.autodocstring"
+		"njpwerner.autodocstring",
+		"ms-toolsai.jupyter"
 	],
 	"settings": {
 		"editor.formatOnSave": true,

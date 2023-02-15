@@ -1,7 +1,7 @@
 import abc
 import json
 from collections import defaultdict
-from typing import DefaultDict, Dict, List, Optional, Union
+from typing import DefaultDict, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -125,7 +125,7 @@ class BubbleSorter(BaseSorter):
 
         passes: List[List[m_utils.PassDataModel]] = []
         rows, cols = self.arr.shape
-        for (idx_pass, sort_pass) in enumerate(self.passes):
+        for idx_pass, sort_pass in enumerate(self.passes):
             current_pass = [
                 m_utils.PassDataModel(
                     num_pass=idx_pass, row=row, col=col, value=int(sort_pass[row][col])
@@ -270,8 +270,9 @@ class MergeSorter(BaseSorter):
 
         for idx_divide in self.passes:
             num_pass = len(self.passes) - idx_divide  # lower num pass equates to early in the sort
-            for (data, left_index, right_index) in self.passes[idx_divide]:
+            for data, left_index, right_index in self.passes[idx_divide]:
                 sorted_arr[:, left_index:right_index] = data
+
             current_pass = [
                 m_utils.PassDataModel(
                     num_pass=num_pass, row=row, col=col, value=int(sorted_arr[row][col])
@@ -282,6 +283,119 @@ class MergeSorter(BaseSorter):
             passes.append(current_pass)
 
         data = m_utils.SortDataModel(method="Merge Sort", rows=rows, cols=cols, passes=passes)
+
+        with open(filename, "w") as f:
+            json.dump(
+                data.dict(),
+                f,
+            )
+
+
+class QuickSorter(BaseSorter):
+    def __init__(self):
+        super().__init__()
+        self.passes: DefaultDict = defaultdict(list)
+
+    def _init_params(self, arr: Optional[np.ndarray]) -> None:
+        super()._init_params(arr)
+        self.passes: DefaultDict = defaultdict(list)
+
+    def sort(self, arr: np.ndarray) -> np.ndarray:
+        """Sorts the provided `arr` using Quick Sort.
+
+        :param arr: The array to sort.
+        :type arr: np.ndarray
+        :return: The sorted array.
+        :rtype: np.ndarray
+        """
+
+        self._init_params(arr)
+
+        idx_right = self.num_cols - 1 if self.num_cols is not None else None
+        sorted_arr = np.zeros_like(arr)
+        for idx_row, row_data in enumerate(arr.copy()):
+            sorted_arr[idx_row] = self._quicksort(0, idx_row, row_data, 0, idx_right)
+        return sorted_arr
+
+    def _partition(self, arr: np.ndarray, idx_left: int, idx_right: int) -> Tuple[np.ndarray, int]:
+        """Hoare partition scheme"""
+        pivot = (idx_left + idx_right) // 2
+        pivot_value = arr[pivot]
+
+        while True:
+            while arr[idx_left] < pivot_value:
+                idx_left += 1
+
+            while arr[idx_right] > pivot_value:
+                idx_right -= 1
+
+            if idx_left >= idx_right:
+                return arr, idx_right
+
+            arr[idx_left], arr[idx_right] = arr[idx_right], arr[idx_left]
+
+    def _quicksort(
+        self,
+        num_divide: int,
+        idx_row: int,
+        arr: Optional[np.ndarray],
+        idx_left: Optional[int],
+        idx_right: Optional[int],
+    ) -> Optional[np.ndarray]:
+        if arr is None or idx_left is None or idx_right is None:
+            raise ValueError("A numpy array is not set, please call the `sort()` method.")
+
+        if idx_left < 0 or idx_right < 0 or idx_left >= idx_right:
+            return
+
+        sorted_arr, pivot = self._partition(arr, idx_left, idx_right)
+        self.passes[num_divide + 1].append(
+            [sorted_arr[idx_left : idx_right + 1].copy(), idx_row, idx_left, idx_right]
+        )
+
+        self._quicksort(num_divide + 1, idx_row, sorted_arr, idx_left, pivot)
+        self._quicksort(num_divide + 1, idx_row, sorted_arr, pivot + 1, idx_right)
+
+        return sorted_arr
+
+    def save_sort(self, filename: str) -> None:
+        """Saves the sorted data into a .json file that makes it easy to plot using d3.
+
+        :param filename: The .json filename to save the data to.
+        :type filename: str
+        :raises ValueError: Raised when the data has not been sorted.
+        """
+
+        if self.arr is None:
+            raise ValueError("Unable to save sort, call the `sort()` before attempting to save.")
+
+        rows, cols = self.arr.shape
+
+        # initialize with the starting array as num_pass = 0
+        passes = [
+            [
+                m_utils.PassDataModel(num_pass=0, row=row, col=col, value=int(self.arr[row][col]))
+                for row in range(rows)
+                for col in range(cols)
+            ]
+        ]
+        sorted_arr = self.arr.copy()
+
+        for idx_divide in self.passes:
+            num_pass = idx_divide  # lower num pass equates to early in the sort
+            for data, idx_row, left_index, right_index in self.passes[idx_divide]:
+                sorted_arr[idx_row, left_index : right_index + 1] = data
+
+            current_pass = [
+                m_utils.PassDataModel(
+                    num_pass=num_pass, row=row, col=col, value=int(sorted_arr[row][col])
+                )
+                for row in range(rows)
+                for col in range(cols)
+            ]
+            passes.append(current_pass)
+
+        data = m_utils.SortDataModel(method="Quick Sort", rows=rows, cols=cols, passes=passes)
 
         with open(filename, "w") as f:
             json.dump(

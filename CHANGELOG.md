@@ -6,3 +6,4 @@
     - `BaseSorter`: a base class for all the sorters.
     - `BubbleSorter`: a sorter class that will perform the `Bubble Sort` method.
     - `MergeSorter`: a sorter class that will perform the `Merge Sort` method.
+    - `QuickSorter`: a sorter class that will perform the `Quick Sort` method.
