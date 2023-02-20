@@ -1,6 +1,11 @@
 # Changelog
 
-- [0.1.0] ((https://github.com/replica-analytics/synthesis-engine/pull/559))] - 2023-01-29
+- [[0.2.0](https://github.com/GeoffBarrett/gebaWeb/pull/3)] - 2023-02-19
+  - *Modified*
+    - `CHANGELOG.md`: updated to contain the proper Pull Request links.
+    - `pyproject.toml`: added more package meta-info.
+
+- [[0.1.0](https://github.com/GeoffBarrett/SortViz/pull/3)] - 2023-01-29
   - *Added*
     - Initialized SortViz project
     - `BaseSorter`: a base class for all the sorters.

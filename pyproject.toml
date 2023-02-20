@@ -1,9 +1,15 @@
 [tool.poetry]
 name = "sortviz"
-version = "0.1.0"
+version = "0.2.0"
 description = "Repository for visualizing sorting methods in Python."
 authors = ["Geoffrey Barrett <Geoffrey.M.Barrett@gmail.com>"]
 license = "GNU General Public License"
+readme = "README.md"
+repository = "https://github.com/GeoffBarrett/SortViz"
+packages = [
+  { include = "sortviz" }
+]
+include = ["CHANGELOG.md"]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.11"
