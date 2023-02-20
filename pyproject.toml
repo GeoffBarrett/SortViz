@@ -1,0 +1,53 @@
+[tool.poetry]
+name = "sortviz"
+version = "0.2.0"
+description = "Repository for visualizing sorting methods in Python."
+authors = ["Geoffrey Barrett <Geoffrey.M.Barrett@gmail.com>"]
+license = "GNU General Public License"
+readme = "README.md"
+repository = "https://github.com/GeoffBarrett/SortViz"
+packages = [
+  { include = "sortviz" }
+]
+include = ["CHANGELOG.md"]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.11"
+jupyter = "^1.0.0"
+numpy = "^1.24.1"
+pandas = "^1.5.3"
+pydantic = "^1.10.4"
+matplotlib = "^3.6.3"
+ipykernel = "^6.21.0"
+
+[tool.poetry.dev-dependencies]
+black = {extras = ["jupyter"], version = "^22.12.0"}
+coverage = "^6.4.1"
+coverage-badge = "^1.1.0"
+isort = "^5.10.1"
+pytest = "^7.1.2"
+pytest-cov = "^3.0.0"
+pytest-mock = "^3.8.2"
+pytype = "^2023.1.10"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+
+[tool.isort]
+profile = "black"
+
+[tool.pytest.ini_options]
+addopts = "-vv"
+testpaths = [
+    "tests",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError"
+]

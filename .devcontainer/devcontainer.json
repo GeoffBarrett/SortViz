@@ -1,0 +1,21 @@
+{
+	"name": "SortViz",
+	"service": "sort_viz",
+	"remoteUser": "geba",
+	"dockerComposeFile": "docker-compose.yml",
+	"workspaceFolder": "/home/geba/app",
+	"extensions": [
+		"ms-python.python",
+		"ms-python.vscode-pylance",
+		"ms-python.black-formatter",
+		"njpwerner.autodocstring",
+		"ms-toolsai.jupyter"
+	],
+	"settings": {
+		"editor.formatOnSave": true,
+		"terminal.integrated.shell.*": "/bin/bash"
+	},
+	"features": {
+		"python": "3.10"
+	}
+}
