@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sortviz"
-version = "0.2.0"
+version = "0.3.0"
 description = "Repository for visualizing sorting methods in Python."
 authors = ["Geoffrey Barrett <Geoffrey.M.Barrett@gmail.com>"]
 license = "GNU General Public License"
