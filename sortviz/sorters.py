@@ -1,7 +1,7 @@
 import abc
 import json
 from collections import defaultdict
-from typing import DefaultDict, Dict, List, Optional, Tuple, Union
+from typing import DefaultDict, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -18,6 +18,7 @@ class BaseSorter(abc.ABC):
         self.num_cols: Optional[int] = None
         self.is_row_completed: Optional[np.ndarray] = None
         self.passes: List[np.ndarray] = []
+        self.num_comparisons: Dict[int, int] = {}
         self._init_params(None)
 
     def _init_params(self, arr: Optional[np.ndarray]) -> None:
@@ -35,6 +36,7 @@ class BaseSorter(abc.ABC):
             self.num_rows, self.num_cols = arr.shape
             self.is_row_completed = np.zeros(self.num_rows)
         self.passes = []
+        self.num_comparisons = {}
 
     @abc.abstractmethod
     def sort(self, arr: np.ndarray) -> np.ndarray:
@@ -98,6 +100,7 @@ class BubbleSorter(BaseSorter):
 
         # iterate over each row and sort
         for idx_row, row_data in enumerate(arr):
+            self.num_comparisons.setdefault(idx_row, 0)
             if self.is_row_completed[idx_row] == 1:
                 # already completed sort
                 continue
@@ -105,6 +108,7 @@ class BubbleSorter(BaseSorter):
             self.is_row_completed[idx_row] = 1
             # sort the row
             for idx_col in range(1, self.num_cols):
+                self.num_comparisons[idx_row] += 1
                 if row_data[idx_col] > row_data[idx_col - 1]:
                     # no need to sort
                     continue
@@ -135,7 +139,13 @@ class BubbleSorter(BaseSorter):
             ]
             passes.append(current_pass)
 
-        data = m_utils.SortDataModel(method="Bubble Sort", rows=rows, cols=cols, passes=passes)
+        data = m_utils.SortDataModel(
+            method="Bubble Sort",
+            rows=rows,
+            cols=cols,
+            passes=passes,
+            comparisons=m_utils.ComparisonModel(comparisons=self.num_comparisons),
+        )
 
         with open(filename, "w") as f:
             json.dump(
@@ -181,10 +191,12 @@ class MergeSorter(BaseSorter):
 
         # sort each row separately
         for idx_row in np.arange(rows):
+            self.num_comparisons.setdefault(idx_row, 0)
             idx_left = 0
             idx_right = 0
             idx_temp = 0
             while idx_temp < cols:
+                self.num_comparisons[idx_row] += 1
                 left_value = left_arr[idx_row, idx_left] if idx_left < left_arr.shape[1] else None
                 right_value = (
                     right_arr[idx_row, idx_right] if idx_right < right_arr.shape[1] else None
@@ -282,7 +294,13 @@ class MergeSorter(BaseSorter):
             ]
             passes.append(current_pass)
 
-        data = m_utils.SortDataModel(method="Merge Sort", rows=rows, cols=cols, passes=passes)
+        data = m_utils.SortDataModel(
+            method="Merge Sort",
+            rows=rows,
+            cols=cols,
+            passes=passes,
+            comparisons=m_utils.ComparisonModel(comparisons=self.num_comparisons),
+        )
 
         with open(filename, "w") as f:
             json.dump(
@@ -314,11 +332,26 @@ class QuickSorter(BaseSorter):
         idx_right = self.num_cols - 1 if self.num_cols is not None else None
         sorted_arr = np.zeros_like(arr)
         for idx_row, row_data in enumerate(arr.copy()):
+            self.num_comparisons.setdefault(idx_row, 0)
             sorted_arr[idx_row] = self._quicksort(0, idx_row, row_data, 0, idx_right)
         return sorted_arr
 
-    def _partition(self, arr: np.ndarray, idx_left: int, idx_right: int) -> Tuple[np.ndarray, int]:
-        """Hoare partition scheme"""
+    def _partition(
+        self, idx_row: int, arr: np.ndarray, idx_left: int, idx_right: int
+    ) -> Tuple[np.ndarray, int]:
+        """Hoare partition scheme.
+
+        :param idx_row: the row index being partitioned.
+        :type idx_row: int
+        :param arr: The sub-array being partitioned.
+        :type arr: np.ndarray
+        :param idx_left: the left pointer.
+        :type idx_left: int
+        :param idx_right: the right pointer.
+        :type idx_right: int
+        :return: the sorted partition, as well as the pointer index.
+        :rtype: Tuple[np.ndarray, int]
+        """
         pivot = (idx_left + idx_right) // 2
         pivot_value = arr[pivot]
 
@@ -329,6 +362,7 @@ class QuickSorter(BaseSorter):
             while arr[idx_right] > pivot_value:
                 idx_right -= 1
 
+            self.num_comparisons[idx_row] += 1
             if idx_left >= idx_right:
                 return arr, idx_right
 
@@ -342,13 +376,29 @@ class QuickSorter(BaseSorter):
         idx_left: Optional[int],
         idx_right: Optional[int],
     ) -> Optional[np.ndarray]:
+        """The quicksort algorithm.
+
+        :param num_divide: the number of divisions made by the divide-and-conquer algorithm.
+        :type num_divide: int
+        :param idx_row: the row inde xbeing sorted.
+        :type idx_row: int
+        :param arr: the array being sorted.
+        :type arr: Optional[np.ndarray]
+        :param idx_left: the index of the left pointer.
+        :type idx_left: Optional[int]
+        :param idx_right: the index of the right pointer.
+        :type idx_right: Optional[int]
+        :raises ValueError: raised when the array is not initialized.
+        :return: the sorted array.
+        :rtype: Optional[np.ndarray]
+        """
         if arr is None or idx_left is None or idx_right is None:
             raise ValueError("A numpy array is not set, please call the `sort()` method.")
 
         if idx_left < 0 or idx_right < 0 or idx_left >= idx_right:
             return
 
-        sorted_arr, pivot = self._partition(arr, idx_left, idx_right)
+        sorted_arr, pivot = self._partition(idx_row, arr, idx_left, idx_right)
         self.passes[num_divide + 1].append(
             [sorted_arr[idx_left : idx_right + 1].copy(), idx_row, idx_left, idx_right]
         )
@@ -395,7 +445,13 @@ class QuickSorter(BaseSorter):
             ]
             passes.append(current_pass)
 
-        data = m_utils.SortDataModel(method="Quick Sort", rows=rows, cols=cols, passes=passes)
+        data = m_utils.SortDataModel(
+            method="Quick Sort",
+            rows=rows,
+            cols=cols,
+            passes=passes,
+            comparisons=m_utils.ComparisonModel(comparisons=self.num_comparisons),
+        )
 
         with open(filename, "w") as f:
             json.dump(
